@@ -170,3 +170,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 notebooks/autoencoder_tuning/*
+logs/*
+models/*
+data/* 
+saved_models/*

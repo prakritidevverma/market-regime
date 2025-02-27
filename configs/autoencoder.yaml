@@ -1,0 +1,16 @@
+# === configs/autoencoder.yaml ===
+# Autoencoder-specific settings
+
+model:
+  name: 'Autoencoder'
+  encoding_dim: 10
+  batch_size: 32
+  epochs: 50
+  learning_rate: 0.001
+  loss_function: 'huber'  # Keeping this for reference, but implemented in PyTorch as nn.HuberLoss()
+  optimizer: 'adam'  # Ensuring consistency with PyTorch
+  device: 'mps'  # Change to 'cpu' if no GPU is available
+  save_model: True
+  save_model_path: 'saved_models/autoencoder.pt'
+  load_model: False
+  load_model_path: 'saved_models/autoencoder.pt'
