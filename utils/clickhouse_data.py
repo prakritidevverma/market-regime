@@ -67,13 +67,13 @@ def clickhouse_largecap(start_date, end_date, size):
     largecap_ticker_path = "/Users/akash/personal/finance/technical-analysis/data/metadata/largecap.csv"
     return clickhouse_data(largecap_ticker_path, start_date, end_date, size)
 
-def clickhouse_midcap(start_date, end_date):
+def clickhouse_midcap(start_date, end_date, size):
     midcap_ticker_path = "/Users/akash/personal/finance/technical-analysis/data/metadata/midcap.csv"
-    return clickhouse_data(midcap_ticker_path, start_date, end_date)
+    return clickhouse_data(midcap_ticker_path, start_date, end_date, size)
 
-def clickhouse_smallcap(start_date, end_date):
+def clickhouse_smallcap(start_date, end_date, size):
     smallcap_ticker_path = "/Users/akash/personal/finance/technical-analysis/data/metadata/smallcap.csv"
-    return clickhouse_data(smallcap_ticker_path, start_date, end_date)
+    return clickhouse_data(smallcap_ticker_path, start_date, end_date, size)
 
 def fill_missing_dates_modin_optimized(df: mpd.DataFrame) -> mpd.DataFrame:
     """

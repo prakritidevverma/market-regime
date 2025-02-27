@@ -3,6 +3,7 @@
 
 model:
   name: 'Autoencoder'
+  input_dim: 45
   encoding_dim: 10
   batch_size: 32
   epochs: 50

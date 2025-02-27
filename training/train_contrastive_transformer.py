@@ -58,7 +58,7 @@ def train_autoencoder(X):
     print("✅ Autoencoder training complete!")
 
 
-def select_optimal_gmm_components(X_encoded, max_clusters=10):
+def select_optimal_gmm_components(X_encoded, max_clusters=18):
     """
     Uses BIC (Bayesian Information Criterion) to determine the optimal number of clusters for GMM.
     """
@@ -129,33 +129,51 @@ def train_contrastive_transformer(X_encoded=None, use_saved_autoencoder=True):
 
     if use_saved_autoencoder:
         print("🔄 Loading latest saved Autoencoder model...")
-        autoencoder = Autoencoder(input_dim=X_encoded.shape[1], encoding_dim=autoencoder_config["model"]["encoding_dim"])
+        autoencoder = Autoencoder(
+            input_dim=autoencoder_config["model"]["input_dim"],
+            encoding_dim=autoencoder_config["model"]["encoding_dim"]
+        )
         autoencoder.load_state_dict(torch.load(autoencoder_config["model"]["load_model_path"], map_location=device))
         autoencoder.to(device)
         autoencoder.eval()
-        X_encoded = autoencoder.encoder(torch.tensor(X_encoded, dtype=torch.float32).to(device)).detach().cpu().numpy()
+
+        print(f"🔥 Debug: X_encoded shape BEFORE Autoencoder transformation: {X_encoded.shape}")  # Should be (N, 45)
+
+     
+        X_encoded = X_encoded.to_numpy()
+
+        with torch.no_grad():
+            X_encoded = autoencoder.encoder(torch.tensor(X_encoded, dtype=torch.float32).to(device)).cpu().numpy()
+
+
+        print(f"✅ Debug: X_encoded shape AFTER Autoencoder transformation: {X_encoded.shape}")  # Should be (N, 10)
+
 
     positive_pairs, negative_pairs = generate_contrastive_pairs(X_encoded)
-    
-    X_encoded = torch.tensor(X_encoded.values, dtype=torch.float32).to(device)
 
+    # ✅ Fix: Correct conversion
+    X_encoded = torch.tensor(X_encoded, dtype=torch.float32).to(device)
     positive_pairs = torch.tensor(positive_pairs, dtype=torch.float32).to(device)
     negative_pairs = torch.tensor(negative_pairs, dtype=torch.float32).to(device)
 
+    # ✅ Fix: Ensure `input_dim` matches Autoencoder output
     transformer = ContrastiveTransformer(
-    input_dim=X_encoded.shape[1],  # ✅ Fix: Ensure input_dim matches X_encoded
-    d_model=config["model"].get("d_model", 128),
-    num_heads=config["model"]["num_heads"],
-    num_layers=config["model"]["num_layers"],
-    ff_dim=config["model"].get("ff_dim", 256)
-).to(device)
+        input_dim=autoencoder_config["model"]["encoding_dim"],  # ✅ Ensure this matches Autoencoder
+        d_model=config["model"].get("d_model", 128),
+        num_heads=config["model"]["num_heads"],
+        num_layers=config["model"]["num_layers"],
+        ff_dim=config["model"].get("ff_dim", 256)
+    ).to(device)
 
-
-    transformer.to(device)
     transformer.train()
-
     optimizer = optim.Adam(transformer.parameters(), lr=config["model"]["learning_rate"])
-    criterion = nn.CrossEntropyLoss()
+
+    # ✅ Fix: Use contrastive loss function instead of CrossEntropyLoss
+    def contrastive_loss(z):
+        pos_sim, neg_sim = z[:, 0], z[:, 1]
+        margin = 0.5
+        loss = torch.mean(torch.relu(neg_sim - pos_sim + margin))  # Contrastive loss
+        return loss
 
     epochs = config["model"]["epochs"]
     batch_size = config["model"]["batch_size"]
@@ -163,11 +181,11 @@ def train_contrastive_transformer(X_encoded=None, use_saved_autoencoder=True):
     for epoch in range(epochs):
         optimizer.zero_grad()
         
-        # ✅ Fix: Receive a single output
+        # ✅ Fix: Ensure correct input format
         z = transformer(X_encoded, positive_pairs, negative_pairs)
 
         # ✅ Fix: Ensure the loss function receives correctly shaped inputs
-        loss = criterion(z, torch.ones_like(z))  # Assuming a contrastive loss function
+        loss = contrastive_loss(z)  # ✅ Use contrastive loss
 
         loss.backward()
         optimizer.step()
@@ -175,9 +193,8 @@ def train_contrastive_transformer(X_encoded=None, use_saved_autoencoder=True):
         writer.add_scalar('Loss/Train', loss.item(), epoch)
         print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
 
-    torch.save(transformer.state_dict(), config["save_model_path"])
+    torch.save(transformer.state_dict(), config["model"]["save_model_path"])
     writer.close()
     print("✅ Contrastive Transformer training complete!")
-
 
 
