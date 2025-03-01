@@ -27,9 +27,12 @@ def main():
         print("🚀 Running Inference...")
         df = load_mid_cap(config['dataset']['start_date'], config['dataset']['end_date'], config['dataset']['size'])
         df = preprocess_data(df)
-        test_data = df.iloc[:100]  # Example input
+        test_data = df
         labels = predict_market_regime(test_data)
         print("Market Regime Predictions:", labels)
+        import pandas as pd
+        label_counts = pd.Series(labels).value_counts()
+        print("Market Regime Distribution:", label_counts)
 
 if __name__ == "__main__":
     main()
